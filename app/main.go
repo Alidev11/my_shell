@@ -31,6 +31,15 @@ func main() {
 					os.Exit(i)
 				}
 			}
+		} else if strings.HasPrefix(cmd, "echo"){
+			str, _ := strings.CutPrefix(cmd, "echo ")
+			parts := strings.Fields(cmd)
+			if(len(parts) >= 2) {
+				fmt.Println(str)
+			}else{
+				fmt.Println("Echo command with no argument!")
+				continue
+			}
 		} else {
 			fmt.Fprint(os.Stdout, cmd + ": command not found\n")
 		}
