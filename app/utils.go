@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"os/exec"
 )
 
 var CmdList = [10]string{"echo", "exit", "type"}
@@ -48,7 +49,6 @@ func Type(cmd string) error {
 	parts := strings.Fields(cmd)
 	if len(parts) == 2 {
 		arg := parts[1]
-
 		if contains(CmdList, arg) {
 			fmt.Println(arg, "is a shell builtin")
 		} else {
@@ -69,8 +69,6 @@ func Type(cmd string) error {
 
 func FileExists(dirs []string, target string) (bool, string) {
 	returnedPath := ""
-	// fmt.Println("Path: " , Path)
-	
 	// loop through directories
 	for _, dir := range dirs {
 		// fmt.Println("Dir: " , dir)
@@ -85,7 +83,6 @@ func FileExists(dirs []string, target string) (bool, string) {
 			if err != nil {
 				continue
 			}
-
 			perm := info.Mode().Perm().String()
 			// check only execution permission for either(owner, group, other)
 			fileName := strings.Split(file.Name(), ".")
@@ -102,6 +99,7 @@ func FileExists(dirs []string, target string) (bool, string) {
 
 // ------------------------
 func RunCmd(cmd string) error {
+	cmdArr := strings.Split(cmd, " ")
 	if strings.HasPrefix(cmd, "exit") {
 		err := Exit(cmd)
 		return err
@@ -111,9 +109,13 @@ func RunCmd(cmd string) error {
 	} else if strings.HasPrefix(cmd, "type") {
 		err := Type(cmd)
 		return err
-	} else {
+	} else if res, _ := FileExists(Arr, cmdArr[0]); res == true{
+		cmd := exec.Command(cmdArr[0], cmdArr[1:]...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		cmd.Run()
+	}	else {
 		fmt.Fprint(os.Stdout, cmd+": command not found\n")
 	}
-
 	return nil
 }
