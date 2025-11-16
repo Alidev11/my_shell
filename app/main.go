@@ -4,7 +4,12 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strings"
 )
+
+var Path = os.Getenv("PATH")
+
+var Arr = strings.Split(Path, ":")
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
