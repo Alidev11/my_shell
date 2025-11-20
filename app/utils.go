@@ -67,22 +67,36 @@ func Type(cmd string) error {
 	return nil
 }
 
-func Cd(cmd string) error{
+func Cd(cmd string) error {
 	parts := strings.Fields(cmd)
-	if len(parts)==2{
+	if len(parts) == 2 {
 		arg := parts[1]
-		if strings.HasPrefix(arg, "/") {
-			_, err := os.Stat(arg);
-			if err != nil && os.IsNotExist(err){
-				return fmt.Errorf("%s%s%s", "cd: ",arg,": No such file or directory");
-			}
-			os.Chdir(arg);
+		_, err := os.Stat(arg)
+		if err != nil && os.IsNotExist(err) {
+			return fmt.Errorf("%s%s%s", "cd: ", arg, ": No such file or directory")
 		}
-	}else{
-		return fmt.Errorf("%s", "cd command with 0 arguments!");
+
+		if strings.HasPrefix(arg, "/") {
+			os.Chdir(arg)
+		} else if strings.HasPrefix(arg, "./") {
+			arg = strings.TrimPrefix(arg, ".")
+			wd, _ := os.Getwd()
+			os.Chdir(wd + arg)
+		} else{
+			wd, _ := os.Getwd()
+			for strings.HasPrefix(arg, "../"){
+				index := strings.LastIndex(wd, "/")
+				wd = wd[:index]
+				arg = strings.TrimPrefix(arg, "../")
+				// fmt.Println("Index: " , index, " arg: ", arg, "WD: ", wd)
+			}
+			os.Chdir(wd + "/" + arg)
+		}
+	} else {
+		return fmt.Errorf("%s", "cd command with 0 arguments!")
 	}
 
-	return nil;
+	return nil
 }
 
 func FileExists(dirs []string, target string) (exists bool, path string) {
@@ -119,8 +133,8 @@ func RunCmd(cmd string) error {
 		fmt.Println(wd)
 		return err
 	case "cd":
-		err := Cd(cmd);
-		return err;
+		err := Cd(cmd)
+		return err
 	default:
 		if res, _ := FileExists(DIRS, cmdArr[0]); res == true {
 			cmd := exec.Command(cmdArr[0], cmdArr[1:]...)
