@@ -9,7 +9,7 @@ import (
 
 var Path = os.Getenv("PATH")
 
-var Arr = strings.Split(Path, ":")
+var DIRS = strings.Split(Path, ":")
 
 func main() {
 	scanner := bufio.NewScanner(os.Stdin)
@@ -18,7 +18,8 @@ func main() {
 		fmt.Fprint(os.Stdout, "$ ")
 		scanner.Scan()
 		cmd := scanner.Text()
-
+		cmd = strings.TrimSpace(cmd)
+		
 		err := RunCmd(cmd)
 
 		if err != nil {
