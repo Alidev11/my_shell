@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+	"path/filepath"
 )
 
 var CmdList = [10]string{"echo", "exit", "type", "pwd", "cd"}
@@ -69,35 +70,67 @@ func Type(cmd string) error {
 
 func Cd(cmd string) error {
 	parts := strings.Fields(cmd)
-	if len(parts) == 2 {
-		arg := parts[1]
-		_, err := os.Stat(arg)
-		if err != nil && os.IsNotExist(err) {
-			return fmt.Errorf("%s%s%s", "cd: ", arg, ": No such file or directory")
-		}
-
-		if strings.HasPrefix(arg, "/") {
-			os.Chdir(arg)
-		} else if strings.HasPrefix(arg, "./") {
-			arg = strings.TrimPrefix(arg, ".")
-			wd, _ := os.Getwd()
-			os.Chdir(wd + arg)
-		} else{
-			wd, _ := os.Getwd()
-			for strings.HasPrefix(arg, "../"){
-				index := strings.LastIndex(wd, "/")
-				wd = wd[:index]
-				arg = strings.TrimPrefix(arg, "../")
-				// fmt.Println("Index: " , index, " arg: ", arg, "WD: ", wd)
-			}
-			os.Chdir(wd + "/" + arg)
-		}
-	} else {
-		return fmt.Errorf("%s", "cd command with 0 arguments!")
+	if len(parts) != 2 {
+		return fmt.Errorf("cd command requires exactly one argument")
 	}
 
-	return nil
+	arg := parts[1]
+	var target string
+
+	switch {
+	case strings.HasPrefix(arg, "/"):
+		// absolute path
+		target = arg
+
+	case strings.HasPrefix(arg, "./"):
+		// relative to current directory
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		target = filepath.Join(wd, strings.TrimPrefix(arg, "./"))
+
+	case strings.HasPrefix(arg, "../"):
+		// parent traversal
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		target = filepath.Join(wd, arg)
+
+	case strings.HasPrefix(arg, "~"):
+		// home expansion
+		home, err := os.UserHomeDir()
+		if err != nil {
+			return err
+		}
+		target = filepath.Join(home, strings.TrimPrefix(arg, "~"))
+
+	default:
+		// normal relative path
+		wd, err := os.Getwd()
+		if err != nil {
+			return err
+		}
+		target = filepath.Join(wd, arg)
+	}
+
+	// check directory existence
+	info, err := os.Stat(target)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return fmt.Errorf("cd: %s: No such file or directory", target)
+		}
+		return err
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("cd: %s: Not a directory", target)
+	}
+
+	return os.Chdir(target)
 }
+
 
 func FileExists(dirs []string, target string) (exists bool, path string) {
 	returnedPath := ""
